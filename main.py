@@ -137,6 +137,7 @@ if __name__ == "__main__":
     prefix_left = "ES-"
     prefix_right = "HR-"
 
+
     try:
         pairs = find_matching_pairs(folder_path, prefix_left, prefix_right)
         combine_stereo_files(pairs, output_folder_path, prefix_left, prefix_right)
