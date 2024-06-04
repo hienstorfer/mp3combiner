@@ -1,8 +1,24 @@
 import os
 import tempfile
+import traceback
+
 from pydub import AudioSegment
 from typing import List, Tuple
 
+def log_error(output_folder: str, message: str) -> None:
+    """
+    Log an error message to the error log file in the output folder.
+
+    Args:
+        output_folder (str): Path to the folder where the error log file will be saved.
+        message (str): Error message to be logged.
+
+    Returns:
+        None
+    """
+    error_log_path = os.path.join(output_folder, "error_log.txt")
+    with open(error_log_path, "a") as log_file:
+        log_file.write(message + "\n")
 
 def preprocess_audio_to_temp(file_path: str, target_sample_rate: int = 44100) -> str:
     """
@@ -150,16 +166,18 @@ def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefi
                 combined_audio = AudioSegment.from_mono_audiosegments(left_audio, right_audio)
 
                 if prefix:
-                    base_filename = os.path.basename(left_file)[len(prefix):]  # Remove prefix
+                    base_filename = os.path.basename(left_file)[len(prefix_left):]  # Remove prefix
                     output_file = os.path.join(output_folder, f"{prefix}{suffix}{base_filename}")
                 else:
-                    base_filename = os.path.basename(left_file)[:-len(suffix)]  # Remove suffix
+                    base_filename = os.path.basename(left_file)[:-len(suffix_left)]  # Remove suffix
                     output_file = os.path.join(output_folder, f"{base_filename}{suffix}.mp3")
 
                 combined_audio.export(output_file, format="mp3")
                 print(f"Combined {left_file} and {right_file} into {output_file}")
             except Exception as e:
                 print(f"Error processing files {left_file} and {right_file}: {e}")
+                log_error(output_folder, error_message)
+                log_error(output_folder, traceback.format_exc())
     finally:
         for temp_file in temp_files:
             os.remove(temp_file)
@@ -172,7 +190,7 @@ if __name__ == "__main__":
     prefix_left = "ES-"
     prefix_right = "FR-"
     suffix_left = "-ES.mp3"
-    suffix_right = "-HR.mp3"
+    suffix_right = "-FR.mp3"
 
     try:
         # Handle prefix-based pairing
@@ -186,5 +204,9 @@ if __name__ == "__main__":
                              suffix=f"-{suffix_right[:-4]}-{suffix_left[:-4]}")
     except FileNotFoundError as e:
         print(e)
+        log_error(output_folder_path, str(e))
+        log_error(output_folder_path, traceback.format_exc())
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        log_error(output_folder_path, str(e))
+        log_error(output_folder_path, traceback.format_exc())
