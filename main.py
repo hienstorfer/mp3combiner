@@ -160,7 +160,7 @@ if __name__ == "__main__":
     folder_path = r"C:\path_to_your_folder"
     output_folder_path = r"C:\path_to_output_folder"
     bitrate = "64k"
-    speed_factor = 0.7
+    speed_factor = 1
 
 
     # Table of constants
