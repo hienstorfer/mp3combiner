@@ -159,6 +159,9 @@ def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefi
 if __name__ == "__main__":
     folder_path = r"C:\path_to_your_folder"
     output_folder_path = r"C:\path_to_output_folder"
+    bitrate = "64k"
+    speed_factor = 0.7
+
 
     # Table of constants
     constants = [
@@ -167,24 +170,19 @@ if __name__ == "__main__":
             "prefix_right": "HR-",
             "suffix_left": "-RU.mp3",
             "suffix_right": "-HR.mp3",
-            "speed_factor": 1.0,  # Change this to adjust the speed
-            "bitrate": "64k"  # Adjust the bitrate as needed
+
         },
         {
             "prefix_left": "ES-",
             "prefix_right": "HR-",
             "suffix_left": "-ES.mp3",
             "suffix_right": "-HR.mp3",
-            "speed_factor": 1.0,  # Change this to adjust the speed
-            "bitrate": "64k"  # Adjust the bitrate as needed
         },
         {
             "prefix_left": "ES-",
             "prefix_right": "FR-",
             "suffix_left": "-ES.mp3",
             "suffix_right": "-FR.mp3",
-            "speed_factor": 1.0,  # Change this to adjust the speed
-            "bitrate": "64k"  # Adjust the bitrate as needed
         },
         # Add more combinations if needed
     ]
@@ -194,8 +192,6 @@ if __name__ == "__main__":
         prefix_right = constant["prefix_right"]
         suffix_left = constant["suffix_left"]
         suffix_right = constant["suffix_right"]
-        speed_factor = constant["speed_factor"]
-        bitrate = constant["bitrate"]
 
         try:
             # Handle prefix-based pairing
