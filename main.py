@@ -160,26 +160,59 @@ if __name__ == "__main__":
     folder_path = r"C:\path_to_your_folder"
     output_folder_path = r"C:\path_to_output_folder"
 
-    prefix_left = "RU-"
-    prefix_right = "HR-"
-    suffix_left = "-RU.mp3"
-    suffix_right = "-HR.mp3"
-    speed_factor = 1  # Change this to adjust the speed
-    bitrate = "64k"  # Adjust the bitrate as needed
+    # Table of constants
+    constants = [
+        {
+            "prefix_left": "RU-",
+            "prefix_right": "HR-",
+            "suffix_left": "-RU.mp3",
+            "suffix_right": "-HR.mp3",
+            "speed_factor": 1.0,  # Change this to adjust the speed
+            "bitrate": "64k"  # Adjust the bitrate as needed
+        },
+        {
+            "prefix_left": "ES-",
+            "prefix_right": "HR-",
+            "suffix_left": "-ES.mp3",
+            "suffix_right": "-HR.mp3",
+            "speed_factor": 1.0,  # Change this to adjust the speed
+            "bitrate": "64k"  # Adjust the bitrate as needed
+        },
+        {
+            "prefix_left": "ES-",
+            "prefix_right": "FR-",
+            "suffix_left": "-ES.mp3",
+            "suffix_right": "-FR.mp3",
+            "speed_factor": 1.0,  # Change this to adjust the speed
+            "bitrate": "64k"  # Adjust the bitrate as needed
+        },
+        # Add more combinations if needed
+    ]
 
-    try:
-        # Handle prefix-based pairing
-        prefix_pairs = find_matching_prefix_pairs(folder_path, prefix_left, prefix_right)
-        combine_stereo_files(prefix_pairs, output_folder_path, prefix=f"{prefix_left[:-1]}-{prefix_right[:-1]}-", suffix="", speed_factor=speed_factor, bitrate=bitrate)
+    for constant in constants:
+        prefix_left = constant["prefix_left"]
+        prefix_right = constant["prefix_right"]
+        suffix_left = constant["suffix_left"]
+        suffix_right = constant["suffix_right"]
+        speed_factor = constant["speed_factor"]
+        bitrate = constant["bitrate"]
 
-        # Handle suffix-based pairing
-        suffix_pairs = find_matching_suffix_pairs(folder_path, suffix_left, suffix_right)
-        combine_stereo_files(suffix_pairs, output_folder_path, prefix="", suffix=f"-{suffix_right[:-4]}-{suffix_left[:-4]}", speed_factor=speed_factor, bitrate=bitrate)
-    except FileNotFoundError as e:
-        print(e)
-        log_error(output_folder_path, str(e))
-        log_error(output_folder_path, traceback.format_exc())
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        log_error(output_folder_path, str(e))
-        log_error(output_folder_path, traceback.format_exc())
+        try:
+            # Handle prefix-based pairing
+            prefix_pairs = find_matching_prefix_pairs(folder_path, prefix_left, prefix_right)
+            combine_stereo_files(prefix_pairs, output_folder_path, prefix=f"{prefix_left[:-1]}-{prefix_right[:-1]}-",
+                                 suffix="", speed_factor=speed_factor, bitrate=bitrate)
+
+            # Handle suffix-based pairing
+            suffix_pairs = find_matching_suffix_pairs(folder_path, suffix_left, suffix_right)
+            combine_stereo_files(suffix_pairs, output_folder_path, prefix="",
+                                 suffix=f"-{suffix_right[:-4]}-{suffix_left[:-4]}", speed_factor=speed_factor,
+                                 bitrate=bitrate)
+        except FileNotFoundError as e:
+            print(e)
+            log_error(output_folder_path, str(e))
+            log_error(output_folder_path, traceback.format_exc())
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            log_error(output_folder_path, str(e))
+            log_error(output_folder_path, traceback.format_exc())
