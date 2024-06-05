@@ -141,7 +141,7 @@ def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefi
 
                 if prefix:
                     base_filename = os.path.basename(left_file)[len(prefix_left):]  # Remove prefix
-                    output_file = os.path.join(output_folder, f"{prefix}{suffix}{base_filename}{speed_factor}")
+                    output_file = os.path.join(output_folder, f"{prefix}{suffix}{speed_factor}-{base_filename}")
                 else:
                     base_filename = os.path.basename(left_file)[:-len(suffix_left)]  # Remove suffix
                     output_file = os.path.join(output_folder, f"{base_filename}{suffix}-{speed_factor}.mp3")
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     prefix_right = "HR-"
     suffix_left = "-RU.mp3"
     suffix_right = "-HR.mp3"
-    speed_factor = 0.5  # Change this to adjust the speed
+    speed_factor = 1  # Change this to adjust the speed
     bitrate = "128k"  # Adjust the bitrate as needed
 
     try:
