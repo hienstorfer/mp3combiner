@@ -3,18 +3,13 @@ import tempfile
 import traceback
 
 from pydub import AudioSegment
+import librosa
+import soundfile as sf
 from typing import List, Tuple
 
 def log_error(output_folder: str, message: str) -> None:
     """
     Log an error message to the error log file in the output folder.
-
-    Args:
-        output_folder (str): Path to the folder where the error log file will be saved.
-        message (str): Error message to be logged.
-
-    Returns:
-        None
     """
     error_log_path = os.path.join(output_folder, "error_log.txt")
     with open(error_log_path, "a") as log_file:
@@ -24,13 +19,6 @@ def preprocess_audio_to_temp(file_path: str, target_sample_rate: int = 44100) ->
     """
     Preprocess the audio file by converting to mono, normalizing sample rate,
     and saving it to a temporary file.
-
-    Args:
-        file_path (str): Path to the audio file.
-        target_sample_rate (int): Target sample rate for the audio file.
-
-    Returns:
-        str: Path to the preprocessed temporary audio file.
     """
     audio = AudioSegment.from_file(file_path)
     audio = audio.set_frame_rate(target_sample_rate)
@@ -40,18 +28,19 @@ def preprocess_audio_to_temp(file_path: str, target_sample_rate: int = 44100) ->
     audio.export(temp_file.name, format="wav")
     return temp_file.name
 
+def change_speed_without_pitch(file_path: str, speed_factor: float) -> str:
+    """
+    Change the speed of the audio file without altering the pitch.
+    """
+    y, sr = librosa.load(file_path, sr=None)
+    y_fast = librosa.effects.time_stretch(y, rate=speed_factor)
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+    sf.write(temp_file.name, y_fast, sr)
+    return temp_file.name
 
 def find_matching_prefix_pairs(folder: str, prefix_left: str, prefix_right: str) -> List[Tuple[str, str]]:
     """
     Find matching pairs of files in a folder with given prefixes for left and right channels.
-
-    Args:
-        folder (str): Path to the folder containing the files.
-        prefix_left (str): Prefix for the left channel files.
-        prefix_right (str): Prefix for the right channel files.
-
-    Returns:
-        List[Tuple[str, str]]: List of tuples containing pairs of matching files (left_file, right_file).
     """
     if not os.path.exists(folder):
         raise FileNotFoundError(f"The folder {folder} does not exist.")
@@ -70,18 +59,9 @@ def find_matching_prefix_pairs(folder: str, prefix_left: str, prefix_right: str)
 
     return matching_pairs
 
-
 def find_matching_suffix_pairs(folder: str, suffix_left: str, suffix_right: str) -> List[Tuple[str, str]]:
     """
     Find matching pairs of files in a folder with given suffixes for left and right channels.
-
-    Args:
-        folder (str): Path to the folder containing the files.
-        suffix_left (str): Suffix for the left channel files.
-        suffix_right (str): Suffix for the right channel files.
-
-    Returns:
-        List[Tuple[str, str]]: List of tuples containing pairs of matching files (left_file, right_file).
     """
     if not os.path.exists(folder):
         raise FileNotFoundError(f"The folder {folder} does not exist.")
@@ -100,19 +80,9 @@ def find_matching_suffix_pairs(folder: str, suffix_left: str, suffix_right: str)
 
     return matching_pairs
 
-
-def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefix: str = "", suffix: str = "") -> None:
+def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefix: str = "", suffix: str = "", speed_factor: float = 1.0, bitrate: str = "192k") -> None:
     """
     Combine pairs of MP3 files into stereo files with specified output folder.
-
-    Args:
-        pairs (List[Tuple[str, str]]): List of tuples containing pairs of matching files (left_file, right_file).
-        output_folder (str): Path to the folder where the combined output files will be saved.
-        prefix (str): Prefix for the combined output file.
-        suffix (str): Suffix for the combined output file.
-
-    Returns:
-        None
     """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -127,8 +97,12 @@ def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefi
                 right_temp = preprocess_audio_to_temp(right_file)
                 temp_files.extend([left_temp, right_temp])
 
-                left_audio = AudioSegment.from_file(left_temp)
-                right_audio = AudioSegment.from_file(right_temp)
+                left_temp_speed = change_speed_without_pitch(left_temp, speed_factor)
+                right_temp_speed = change_speed_without_pitch(right_temp, speed_factor)
+                temp_files.extend([left_temp_speed, right_temp_speed])
+
+                left_audio = AudioSegment.from_file(left_temp_speed)
+                right_audio = AudioSegment.from_file(right_temp_speed)
 
                 # Ensure the lengths match by trimming or padding the shorter audio with silence
                 len_left = len(left_audio)
@@ -167,41 +141,40 @@ def combine_stereo_files(pairs: List[Tuple[str, str]], output_folder: str, prefi
 
                 if prefix:
                     base_filename = os.path.basename(left_file)[len(prefix_left):]  # Remove prefix
-                    output_file = os.path.join(output_folder, f"{prefix}{suffix}{base_filename}")
+                    output_file = os.path.join(output_folder, f"{prefix}{suffix}{base_filename}{speed_factor}")
                 else:
                     base_filename = os.path.basename(left_file)[:-len(suffix_left)]  # Remove suffix
-                    output_file = os.path.join(output_folder, f"{base_filename}{suffix}.mp3")
+                    output_file = os.path.join(output_folder, f"{base_filename}{suffix}-{speed_factor}.mp3")
 
-                combined_audio.export(output_file, format="mp3")
+                combined_audio.export(output_file, format="mp3", bitrate=bitrate)
                 print(f"Combined {left_file} and {right_file} into {output_file}")
             except Exception as e:
                 print(f"Error processing files {left_file} and {right_file}: {e}")
-                log_error(output_folder, error_message)
+                log_error(output_folder, str(e))
                 log_error(output_folder, traceback.format_exc())
     finally:
         for temp_file in temp_files:
             os.remove(temp_file)
 
-
 if __name__ == "__main__":
     folder_path = r"C:\path_to_your_folder"
     output_folder_path = r"C:\path_to_output_folder"
 
-    prefix_left = "ES-"
-    prefix_right = "FR-"
-    suffix_left = "-ES.mp3"
-    suffix_right = "-FR.mp3"
+    prefix_left = "RU-"
+    prefix_right = "HR-"
+    suffix_left = "-RU.mp3"
+    suffix_right = "-HR.mp3"
+    speed_factor = 0.5  # Change this to adjust the speed
+    bitrate = "128k"  # Adjust the bitrate as needed
 
     try:
         # Handle prefix-based pairing
         prefix_pairs = find_matching_prefix_pairs(folder_path, prefix_left, prefix_right)
-        combine_stereo_files(prefix_pairs, output_folder_path, prefix=f"{prefix_left[:-1]}-{prefix_right[:-1]}-",
-                             suffix="")
+        combine_stereo_files(prefix_pairs, output_folder_path, prefix=f"{prefix_left[:-1]}-{prefix_right[:-1]}-", suffix="", speed_factor=speed_factor, bitrate=bitrate)
 
         # Handle suffix-based pairing
         suffix_pairs = find_matching_suffix_pairs(folder_path, suffix_left, suffix_right)
-        combine_stereo_files(suffix_pairs, output_folder_path, prefix="",
-                             suffix=f"-{suffix_right[:-4]}-{suffix_left[:-4]}")
+        combine_stereo_files(suffix_pairs, output_folder_path, prefix="", suffix=f"-{suffix_right[:-4]}-{suffix_left[:-4]}", speed_factor=speed_factor, bitrate=bitrate)
     except FileNotFoundError as e:
         print(e)
         log_error(output_folder_path, str(e))
